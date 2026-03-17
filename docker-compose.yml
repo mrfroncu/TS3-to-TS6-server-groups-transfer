@@ -1,0 +1,19 @@
+services:
+  ts-rank-transfer:
+    build: .
+    container_name: ts-rank-transfer
+    restart: always
+    ports:
+      - "${WEB_PORT:-5540}:${WEB_PORT:-5540}"
+    env_file:
+      - .env
+    # If TS3/TS6 run on the host machine, uncomment:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    # and use TS3_HOST=host.docker.internal in .env
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:${WEB_PORT:-5540}/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
