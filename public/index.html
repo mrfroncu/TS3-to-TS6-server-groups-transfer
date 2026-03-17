@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TS3 → TS6 Server Roles Transfer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep: #0a0c10;
+      --bg-card: #12151c;
+      --bg-card-hover: #181c26;
+      --border: #1e2330;
+      --border-active: #2a3a5c;
+      --text: #c8cdd8;
+      --text-dim: #5a6275;
+      --text-bright: #e8ecf4;
+      --accent: #3b82f6;
+      --success: #22c55e;
+      --success-glow: rgba(34, 197, 94, 0.2);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.2);
+      --warning: #f59e0b;
+      --ts3: #2563eb;
+      --ts6: #8b5cf6;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 20% 20%, rgba(59,130,246,0.06), transparent),
+        radial-gradient(ellipse 500px 500px at 80% 80%, rgba(139,92,246,0.05), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    .header { text-align: center; margin-bottom: 36px; }
+    .header-logo { margin-bottom: 20px; min-height: 10px; }
+    .header-logo img { max-height: 80px; max-width: 280px; object-fit: contain; }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .header h1 span.ts3c { color: var(--ts3); }
+    .header h1 span.ts6c { color: var(--ts6); }
+    .header h1 span.arrow { color: var(--text-dim); font-weight: 400; margin: 0 4px; }
+
+    .header p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .warning-banner svg {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      color: var(--warning);
+      margin-top: 1px;
+    }
+
+    .warning-banner .text {
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #c9a44b;
+    }
+
+    .warning-banner .text strong { color: #e0b94e; font-weight: 600; }
+
+    .ip-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .ip-badge .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .ip-badge .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent);
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.15);
+      padding: 4px 12px;
+      border-radius: 6px;
+    }
+
+    .servers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 520px) { .servers { grid-template-columns: 1fr; } }
+
+    .server-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .server-card.ts3 { border-top: 2px solid var(--ts3); }
+    .server-card.ts6 { border-top: 2px solid var(--ts6); }
+
+    .server-card .server-name {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .server-card.ts3 .server-name { color: var(--ts3); }
+    .server-card.ts6 .server-name { color: var(--ts6); }
+
+    .server-card .status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot.green { background: var(--success); box-shadow: 0 0 6px var(--success-glow); }
+    .dot.red { background: var(--error); box-shadow: 0 0 6px var(--error-glow); }
+
+    .server-card .nickname { font-weight: 600; color: var(--text-bright); font-size: 0.9rem; }
+    .server-card .meta { font-size: 0.78rem; color: var(--text-dim); }
+
+    .server-card .groups-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .group-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .group-tag {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .group-tag .group-name { font-weight: 600; color: var(--text-bright); }
+
+    .group-tag .group-id {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      font-size: 0.68rem;
+    }
+
+    .server-card .empty { font-size: 0.8rem; color: var(--text-dim); font-style: italic; }
+    .server-card .error-text { font-size: 0.8rem; color: var(--error); }
+
+    .btn-join {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      color: var(--accent);
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-join:hover {
+      background: rgba(59,130,246,0.15);
+      border-color: rgba(59,130,246,0.35);
+      color: var(--text-bright);
+    }
+
+    .btn-join svg { width: 13px; height: 13px; }
+
+    .transfer-section { text-align: center; margin-bottom: 20px; }
+
+    .btn-transfer {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 36px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, var(--ts3), var(--ts6));
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 20px rgba(59,130,246,0.25);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-transfer:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(59,130,246,0.35); }
+    .btn-transfer:active:not(:disabled) { transform: translateY(0); }
+    .btn-transfer:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-transfer svg { width: 18px; height: 18px; }
+
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 8px 18px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-refresh:hover { color: var(--text); border-color: var(--border-active); }
+    .btn-refresh svg { width: 14px; height: 14px; }
+
+    .result {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .result.show { display: block; animation: fadeIn 0.3s ease; }
+    .result.success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); color: #6ee7a0; }
+    .result.error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
+    .result .result-title { font-weight: 700; margin-bottom: 4px; font-size: 0.9rem; }
+    .result.success .result-title { color: var(--success); }
+    .result.error .result-title { color: var(--error); }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+      height: 16px;
+      margin-bottom: 8px;
+    }
+
+    .skeleton.w60 { width: 60%; }
+    .skeleton.w40 { width: 40%; }
+
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .footer a:hover { color: var(--text-bright); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-logo" id="header-logo"></div>
+      <h1><span class="ts3c">TS3</span> <span class="arrow">→</span> <span class="ts6c">TS6</span> Server Roles Transfer</h1>
+      <p id="i18n-subtitle"></p>
+    </div>
+
+    <div class="warning-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="text" id="i18n-warning"></div>
+    </div>
+
+    <div class="ip-badge">
+      <span class="label" id="i18n-your-ip"></span>
+      <span class="value" id="ip-display">...</span>
+    </div>
+
+    <div class="servers">
+      <div class="server-card ts3" id="card-ts3">
+        <div class="server-name">TeamSpeak 3</div>
+        <div class="skeleton w60"></div>
+        <div class="skeleton w40"></div>
+      </div>
+      <div class="server-card ts6" id="card-ts6">
+        <div class="server-name">TeamSpeak 6</div>
+        <div class="skeleton w60"></div>
+        <div class="skeleton w40"></div>
+      </div>
+    </div>
+
+    <div class="transfer-section">
+      <button class="btn-transfer" id="btn-transfer" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+        <span id="i18n-btn-transfer"></span>
+      </button>
+      <br />
+      <button class="btn-refresh" id="btn-refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115.36-6.36L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15.36 6.36L3 16"/></svg>
+        <span id="i18n-btn-refresh"></span>
+      </button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <div class="footer" id="i18n-footer"></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const $ip = $("ip-display");
+    const $ts3 = $("card-ts3");
+    const $ts6 = $("card-ts6");
+    const $btn = $("btn-transfer");
+    const $refresh = $("btn-refresh");
+    const $result = $("result");
+    const $logo = $("header-logo");
+
+    // Translation object — loaded from backend
+    let t = {};
+    let connectAddresses = { ts3: "", ts6: "" };
+
+    function tr(key) { return t[key] || key; }
+
+    // ── Load config + translations ──
+    async function loadConfig() {
+      try {
+        const res = await fetch("/api/config");
+        const cfg = await res.json();
+
+        // Store translations
+        t = cfg.t || {};
+
+        // Store connect addresses
+        connectAddresses.ts3 = cfg.ts3ConnectAddress || "";
+        connectAddresses.ts6 = cfg.ts6ConnectAddress || "";
+
+        // Set language on html element
+        if (cfg.language) {
+          document.documentElement.lang = cfg.language;
+        }
+
+        // Logo
+        if (cfg.logoUrl) {
+          $logo.innerHTML = `<img src="${esc(cfg.logoUrl)}" alt="Logo" />`;
+        }
+
+        // Apply static translations
+        $("i18n-subtitle").textContent = tr("subtitle");
+        $("i18n-warning").innerHTML = `<strong>${tr("warning_title")}</strong> ${tr("warning_text")}`;
+        $("i18n-your-ip").textContent = tr("your_ip");
+        $("i18n-btn-transfer").textContent = tr("btn_transfer");
+        $("i18n-btn-refresh").textContent = tr("btn_refresh");
+        $("i18n-footer").innerHTML = `${tr("footer_copy")} <a href="https://github.com/mrfroncu" target="_blank" rel="noopener">${tr("footer_author")}</a>`;
+        $ip.textContent = tr("loading");
+
+      } catch (e) {
+        console.warn("Config load failed:", e);
+      }
+    }
+
+    // ── Render group tag ──
+    function renderGroupTag(groupId, groupNames) {
+      const name = groupNames[String(groupId)];
+      if (name) {
+        return `<span class="group-tag"><span class="group-name">${esc(name)}</span> <span class="group-id">(${groupId})</span></span>`;
+      }
+      return `<span class="group-tag"><span class="group-id">${groupId}</span></span>`;
+    }
+
+    // ── Render server card ──
+    function renderCard(el, serverName, data) {
+      const label = serverName === "ts3" ? tr("ts3_label") : tr("ts6_label");
+      const groupNames = data.groupNames || {};
+
+      if (data.error) {
+        el.innerHTML = `
+          <div class="server-name">${label}</div>
+          <div class="error-text">${tr("connection_error")} ${esc(data.error)}</div>`;
+        return;
+      }
+
+      if (data.count === 0) {
+        const connectAddr = serverName === "ts3" ? connectAddresses.ts3 : connectAddresses.ts6;
+        const connectUrl = serverName === "ts3"
+          ? (connectAddr ? `ts3server://${connectAddr}` : "")
+          : (connectAddr ? `ts3server://${connectAddr}` : "");
+        const joinBtn = connectAddr
+          ? `<a class="btn-join" href="${esc(connectUrl)}" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>${tr("join_server")}</a>`
+          : "";
+        el.innerHTML = `
+          <div class="server-name">${label}</div>
+          <div class="status-line"><span class="dot red"></span><span class="empty">${tr("not_logged_in")}</span></div>${joinBtn}`;
+        return;
+      }
+
+      if (data.count > 1) {
+        let html = `<div class="server-name">${label}</div>`;
+        html += `<div class="status-line"><span class="dot red"></span><span class="error-text">${data.count} ${tr("accounts_detected")}</span></div>`;
+        data.clients.forEach(c => {
+          html += `<div class="meta" style="margin-top:4px">• ${esc(c.nickname)}</div>`;
+        });
+        el.innerHTML = html;
+        return;
+      }
+
+      const c = data.clients[0];
+      const groups = c.serverGroups || [];
+      let html = `
+        <div class="server-name">${label}</div>
+        <div class="status-line"><span class="dot green"></span><span class="nickname">${esc(c.nickname)}</span></div>`;
+
+      if (groups.length > 0) {
+        html += `<div class="groups-label">${tr("groups_label")}</div><div class="group-tags">`;
+        groups.forEach(g => { html += renderGroupTag(g, groupNames); });
+        html += `</div>`;
+      } else {
+        html += `<div class="groups-label">${tr("groups_label")}</div><div class="meta">${tr("no_groups")}</div>`;
+      }
+
+      el.innerHTML = html;
+    }
+
+    // ── Fetch status ──
+    async function fetchStatus() {
+      $btn.disabled = true;
+      $result.classList.remove("show");
+
+      const ts3Label = tr("ts3_label") || "TeamSpeak 3";
+      const ts6Label = tr("ts6_label") || "TeamSpeak 6";
+
+      [$ts3, $ts6].forEach((el, i) => {
+        const label = i === 0 ? ts3Label : ts6Label;
+        el.innerHTML = `<div class="server-name">${label}</div><div class="skeleton w60"></div><div class="skeleton w40"></div>`;
+      });
+
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+
+        $ip.textContent = data.ip || tr("ip_unknown");
+        renderCard($ts3, "ts3", data.ts3);
+        renderCard($ts6, "ts6", data.ts6);
+
+        const canTransfer =
+          !data.ts3.error && !data.ts6.error &&
+          data.ts3.count === 1 && data.ts6.count === 1;
+        $btn.disabled = !canTransfer;
+      } catch (e) {
+        $ip.textContent = tr("ip_error");
+        console.error(e);
+      }
+    }
+
+    // ── Transfer ──
+    async function doTransfer() {
+      $btn.disabled = true;
+      const origHTML = $btn.innerHTML;
+      $btn.innerHTML = `<span class="spinner"></span> ${tr("transferring")}`;
+      $result.classList.remove("show");
+
+      try {
+        const res = await fetch("/api/transfer", { method: "POST" });
+        const data = await res.json();
+
+        if (data.success) {
+          let msg = `<div class="result-title">${tr("result_success")} ${esc(data.message)}</div>`;
+          msg += `<div>TS3: <strong>${esc(data.ts3Nickname)}</strong> → TS6: <strong>${esc(data.ts6Nickname)}</strong></div>`;
+          if (data.transferred && data.transferred.length > 0) {
+            msg += `<div style="margin-top:6px">${tr("transferred_groups")} ${data.transferred.join(", ")}</div>`;
+          }
+          if (data.alreadyHad && data.alreadyHad.length > 0) {
+            msg += `<div>${tr("already_had")} ${data.alreadyHad.join(", ")}</div>`;
+          }
+          showResult("success", msg);
+        } else {
+          let msg = `<div class="result-title">${tr("result_error")}</div><div>${esc(data.error)}</div>`;
+          if (data.details) {
+            msg += `<div style="margin-top:6px">`;
+            data.details.forEach(d => {
+              msg += `<div>• ${esc(d.nickname)} (${tr("groups_colon")} ${d.groups.join(", ")})</div>`;
+            });
+            msg += `</div>`;
+          }
+          showResult("error", msg);
+        }
+      } catch (e) {
+        showResult("error", `<div class="result-title">${tr("result_network_error")}</div><div>${esc(e.message)}</div>`);
+      }
+
+      $btn.innerHTML = origHTML;
+      setTimeout(fetchStatus, 1500);
+    }
+
+    function showResult(type, html) {
+      $result.className = `result ${type} show`;
+      $result.innerHTML = html;
+    }
+
+    function esc(s) {
+      const d = document.createElement("div");
+      d.textContent = s || "";
+      return d.innerHTML;
+    }
+
+    // ── Events ──
+    $btn.addEventListener("click", doTransfer);
+    $refresh.addEventListener("click", fetchStatus);
+
+    // ── Init ──
+    loadConfig().then(fetchStatus);
+  </script>
+</body>
+</html>
