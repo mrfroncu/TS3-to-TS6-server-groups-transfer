@@ -203,6 +203,11 @@ If your TS6 instance uses a different API, you'll need to adjust the `TS6Service
 
 ---
 
+#### DISCLAIMER: 
+![AI Assisted](https://img.shields.io/badge/AI%20Assisted-Project-00ADD8?style=for-the-badge&logo=dependabot&logoColor=white)
+
+---
+
 ## License
 
 MIT
