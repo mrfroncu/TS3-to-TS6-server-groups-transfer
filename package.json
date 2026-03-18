@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
     "ts3-nodejs-library": "^3.4.0",
     "dotenv": "^16.3.1",
     "ssh2": "^1.15.0"

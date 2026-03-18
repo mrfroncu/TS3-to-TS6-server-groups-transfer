@@ -8,24 +8,32 @@ Built with **Node.js**, **Express**, and **Docker**. Connects to TS3 via [ts3-no
 
 ## How It Works
 
+### TS3 → TS6 (IP-based)
 1. User opens the web page — the app detects their **public IP address**
 2. Queries the **TS3** server for clients connected from that IP
 3. Queries the **TS6** server for clients connected from that IP
 4. If **exactly one account** is found on each server — transfers the server groups (by group ID) from TS3 to TS6
-5. If **more than one account** is detected on either server from the same IP — the transfer is **blocked** and an error is shown
+5. If **more than one account** is detected on either server from the same IP — the transfer is **blocked**
 
-This prevents abuse and ensures a 1-to-1 identity mapping between TS3 and TS6 accounts.
+### Discord → TS6 (User ID + IP)
+1. User enters their **Discord User ID** in the Discord tab
+2. The bot fetches their roles from the configured Discord server
+3. Roles are mapped to TS server groups via `DISCORD_ROLE_MAPPING` in `.env`
+4. The user must also be connected to TS6 (verified by IP) — mapped groups are assigned
 
 ---
 
 ## Features
 
 - **IP-based verification** — no login required, fully automatic identity matching
+- **TS3 → TS6 transfer** — transfer server groups from TeamSpeak 3 to TeamSpeak 6
+- **Discord → TS6 transfer** — import Discord roles to TeamSpeak 6 with configurable role mapping
 - **Duplicate detection** — blocks transfer if multiple accounts share the same IP
 - **Group names** — displays human-readable server group names (not just IDs)
 - **Multi-language support** — ships with Polish and English; add your own in `/locales`
 - **Custom branding** — set your logo via `.env`
 - **Rate limiting** — prevents spam (30s cooldown between transfers)
+- **Auto-retry** — TS6 queries retry automatically on connection resets
 - **Docker-ready** — single `docker compose up` to deploy
 - **Reverse proxy support** — proper `X-Forwarded-For` handling behind nginx
 
@@ -69,6 +77,14 @@ TS6_SERVER_ID=1
 TS3_CONNECT_ADDRESS=ts3.example.com
 TS6_CONNECT_ADDRESS=ts6.example.com
 
+# Discord (optional — leave empty to disable)
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_BOT_TOKEN=your_bot_token
+DISCORD_GUILD_ID=your_guild_id
+DISCORD_REDIRECT_URI=http://your-server:5540/auth/discord/callback
+DISCORD_ROLE_MAPPING=111222333:6,444555666:25,777888999:38
+
 # Web
 WEB_PORT=5540
 LOGO_URL=https://example.com/logo.png
@@ -104,6 +120,13 @@ The app is now running at `http://your-server:5540`
 | `TS6_SERVER_ID` | `1` | TS6 virtual server ID |
 | `TS3_CONNECT_ADDRESS` | — | Public address for TS3 "Join server" button |
 | `TS6_CONNECT_ADDRESS` | — | Public address for TS6 "Join server" button |
+| `DISCORD_BOT_TOKEN` | — | Discord bot token (leave empty to disable Discord tab) |
+| `DISCORD_CLIENT_ID` | — | Discord OAuth2 application client ID |
+| `DISCORD_CLIENT_SECRET` | — | Discord OAuth2 application client secret |
+| `DISCORD_GUILD_ID` | — | Discord server (guild) ID |
+| `DISCORD_REDIRECT_URI` | — | OAuth2 callback URL (e.g. `http://your-server:5540/auth/discord/callback`) |
+| `DISCORD_ROLE_MAPPING` | — | Comma-separated `discord_role_id:ts_group_id` pairs |
+| `SESSION_SECRET` | auto | Session encryption key (auto-generated if empty) |
 | `WEB_PORT` | `5540` | Web server port |
 | `LOGO_URL` | — | URL to your logo image |
 | `LANGUAGE` | `PL` | Interface language (`PL` or `EN`) |
@@ -117,6 +140,41 @@ The app is now running at `http://your-server:5540`
 2. Translate all string values
 3. Set `LANGUAGE=XX` in your `.env`
 4. Restart the container
+
+---
+
+## Discord Integration
+
+The Discord → TS6 tab allows users to import their Discord roles as TeamSpeak 6 server groups. This requires a Discord bot.
+
+### Setup
+
+1. **Create a Discord application** at [discord.com/developers](https://discord.com/developers/applications)
+2. Under **OAuth2**, add your redirect URI: `http://your-server:5540/auth/discord/callback`
+3. Copy the **Client ID** and **Client Secret**
+4. Under **Bot**, create a bot and copy the **Bot Token**
+5. Enable the **Server Members Intent** under Bot → Privileged Gateway Intents
+6. Invite the bot to your server with the `bot` scope and `Read Members` permission
+
+### Role Mapping
+
+The `DISCORD_ROLE_MAPPING` variable maps Discord role IDs to TeamSpeak server group IDs:
+
+```env
+# Format: discord_role_id:ts_group_id,discord_role_id:ts_group_id
+DISCORD_ROLE_MAPPING=1234567890123456:6,9876543210987654:25,1112223334445556:38
+```
+
+To find Discord role IDs: enable Developer Mode in Discord settings, go to Server Settings → Roles, right-click a role → Copy Role ID.
+
+### How it works
+
+1. User clicks **"Log in with Discord"** and authenticates via OAuth2
+2. The bot fetches their roles from the configured Discord server
+3. Each Discord role is mapped to a TS server group via `DISCORD_ROLE_MAPPING`
+4. The matching groups are assigned to the user's TS6 account (verified by IP)
+
+If `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_REDIRECT_URI`, or `DISCORD_ROLE_MAPPING` are empty, the Discord tab is hidden automatically.
 
 ---
 

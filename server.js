@@ -3,10 +3,25 @@ const express = require("express");
 const path = require("path");
 const { TeamSpeak } = require("ts3-nodejs-library");
 const http = require("http");
+const https = require("https");
 
 const app = express();
+const session = require("express-session");
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Session for Discord OAuth2
+app.use(session({
+  secret: process.env.SESSION_SECRET || require("crypto").randomBytes(32).toString("hex"),
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 2, // 2 hours
+    httpOnly: true,
+    sameSite: "lax",
+  },
+}));
 
 // Trust proxy if behind nginx/reverse proxy in Docker
 if (process.env.TRUST_PROXY === "true") {
@@ -68,6 +83,22 @@ const CONFIG = {
     logoUrl: process.env.LOGO_URL || "",
     ts3ConnectAddress: process.env.TS3_CONNECT_ADDRESS || "",
     ts6ConnectAddress: process.env.TS6_CONNECT_ADDRESS || "",
+  },
+  discord: {
+    clientId: process.env.DISCORD_CLIENT_ID || "",
+    clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
+    botToken: process.env.DISCORD_BOT_TOKEN || "",
+    guildId: process.env.DISCORD_GUILD_ID || "",
+    redirectUri: process.env.DISCORD_REDIRECT_URI || "",
+    // Format: "dc_role_id:ts_group_id,dc_role_id:ts_group_id"
+    roleMapping: (process.env.DISCORD_ROLE_MAPPING || "")
+      .split(",")
+      .filter(Boolean)
+      .reduce((map, pair) => {
+        const [dcRole, tsGroup] = pair.split(":").map(s => s.trim());
+        if (dcRole && tsGroup) map[dcRole] = tsGroup;
+        return map;
+      }, {}),
   },
 };
 
@@ -242,7 +273,27 @@ class TS6Service {
    * @param {string} command - e.g. "clientlist", "servergroupaddclient"
    * @param {object} params  - key-value params (keys starting with "-" are flags)
    */
-  async query(command, params = {}) {
+  async query(command, params = {}, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await this._doQuery(command, params);
+      } catch (e) {
+        const isRetryable = e.message.includes("ECONNRESET") ||
+          e.message.includes("ECONNREFUSED") ||
+          e.message.includes("timeout") ||
+          e.message.includes("socket hang up");
+        if (isRetryable && attempt < retries) {
+          const delay = attempt * 1500;
+          console.log(`[TS6] Query failed (${e.message}), retrying in ${delay}ms... (${attempt}/${retries})`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  async _doQuery(command, params = {}) {
     // Build URL with server ID in path: /{sid}/{command}
     const url = new URL(`/${this.serverId}/${command}`, this.baseUrl);
 
@@ -393,10 +444,132 @@ class TS6Service {
 }
 
 // ─────────────────────────────────────────────
+//  DISCORD MODULE (OAuth2 + Bot API)
+// ─────────────────────────────────────────────
+class DiscordService {
+  constructor() {
+    this.clientId = CONFIG.discord.clientId;
+    this.clientSecret = CONFIG.discord.clientSecret;
+    this.botToken = CONFIG.discord.botToken;
+    this.guildId = CONFIG.discord.guildId;
+    this.redirectUri = CONFIG.discord.redirectUri;
+    this.roleMapping = CONFIG.discord.roleMapping;
+
+    this.enabled = !!(
+      this.clientId &&
+      this.clientSecret &&
+      this.botToken &&
+      this.guildId &&
+      this.redirectUri &&
+      Object.keys(this.roleMapping).length > 0
+    );
+
+    if (this.enabled) {
+      console.log(`[Discord] OAuth2 enabled — guild: ${this.guildId}, mappings: ${Object.keys(this.roleMapping).length}`);
+    } else {
+      console.log("[Discord] Disabled (missing DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_REDIRECT_URI, or DISCORD_ROLE_MAPPING)");
+    }
+  }
+
+  /** Build the OAuth2 authorize URL */
+  getAuthUrl(state) {
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
+      response_type: "code",
+      scope: "identify",
+      state,
+    });
+    return `https://discord.com/api/oauth2/authorize?${params}`;
+  }
+
+  /** Exchange authorization code for access token */
+  async exchangeCode(code) {
+    const body = new URLSearchParams({
+      client_id: this.clientId,
+      client_secret: this.clientSecret,
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: this.redirectUri,
+    });
+
+    return new Promise((resolve, reject) => {
+      const req = https.request("https://discord.com/api/v10/oauth2/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.access_token) resolve(json);
+            else reject(new Error(json.error_description || json.error || "Token exchange failed"));
+          } catch { reject(new Error("Invalid token response")); }
+        });
+      });
+      req.on("error", reject);
+      req.write(body.toString());
+      req.end();
+    });
+  }
+
+  /** Get user profile using their OAuth2 access token */
+  async getUser(accessToken) {
+    return this._apiCall("https://discord.com/api/v10/users/@me", `Bearer ${accessToken}`);
+  }
+
+  /** Get guild member roles using the BOT token */
+  async getMemberRoles(userId) {
+    const member = await this._apiCall(
+      `https://discord.com/api/v10/guilds/${this.guildId}/members/${userId}`,
+      `Bot ${this.botToken}`
+    );
+    const roles = member.roles || [];
+
+    // Map Discord roles to TS group IDs
+    const mappedGroups = [];
+    for (const roleId of roles) {
+      if (this.roleMapping[roleId]) {
+        mappedGroups.push(this.roleMapping[roleId]);
+      }
+    }
+
+    console.log(`[Discord] User ${userId} roles: [${roles.join(",")}] → TS groups: [${mappedGroups.join(",")}]`);
+    return { roles, mappedGroups };
+  }
+
+  /** Generic Discord API GET */
+  _apiCall(url, auth) {
+    return new Promise((resolve, reject) => {
+      const req = https.request(url, {
+        method: "GET",
+        headers: { "Authorization": auth },
+      }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            const json = JSON.parse(data);
+            if (res.statusCode === 200) resolve(json);
+            else reject(new Error(json.message || `Discord API ${res.statusCode}`));
+          } catch { reject(new Error(`Discord invalid response`)); }
+        });
+      });
+      req.on("error", reject);
+      req.end();
+    });
+  }
+}
+
+// ─────────────────────────────────────────────
 //  INSTANCES
 // ─────────────────────────────────────────────
 const ts3 = new TS3Service();
 const ts6 = new TS6Service();
+const discord = new DiscordService();
 
 // ─────────────────────────────────────────────
 //  RATE LIMITING (simple in-memory)
@@ -427,6 +600,7 @@ app.get("/api/config", (req, res) => {
     language: LANG,
     ts3ConnectAddress: CONFIG.web.ts3ConnectAddress,
     ts6ConnectAddress: CONFIG.web.ts6ConnectAddress,
+    discordEnabled: discord.enabled,
     t,
   });
 });
@@ -610,6 +784,186 @@ app.post("/api/transfer", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+//  DISCORD OAuth2
+// ─────────────────────────────────────────────
+
+// GET /auth/discord - Redirect to Discord login
+app.get("/auth/discord", (req, res) => {
+  if (!discord.enabled) return res.redirect("/");
+  const state = require("crypto").randomBytes(16).toString("hex");
+  req.session.oauthState = state;
+  res.redirect(discord.getAuthUrl(state));
+});
+
+// GET /auth/discord/callback - Handle Discord OAuth2 callback
+app.get("/auth/discord/callback", async (req, res) => {
+  const { code, state } = req.query;
+
+  if (!code || state !== req.session.oauthState) {
+    return res.redirect("/?discord_error=invalid_state");
+  }
+
+  delete req.session.oauthState;
+
+  try {
+    // Exchange code for token
+    const tokenData = await discord.exchangeCode(code);
+
+    // Get user profile
+    const user = await discord.getUser(tokenData.access_token);
+
+    // Get guild member roles via bot
+    let memberData = { roles: [], mappedGroups: [] };
+    try {
+      memberData = await discord.getMemberRoles(user.id);
+    } catch (e) {
+      console.error("[Discord] Failed to get member roles:", e.message);
+    }
+
+    // Save to session
+    req.session.discord = {
+      id: user.id,
+      username: user.global_name || user.username,
+      avatar: user.avatar
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
+        : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`,
+      roles: memberData.roles,
+      mappedGroups: memberData.mappedGroups,
+    };
+
+    console.log(`[Discord] User logged in: ${req.session.discord.username} (${user.id})`);
+    res.redirect("/?tab=discord");
+  } catch (e) {
+    console.error("[Discord] OAuth2 error:", e.message);
+    res.redirect("/?discord_error=" + encodeURIComponent(e.message));
+  }
+});
+
+// GET /auth/discord/logout
+app.get("/auth/discord/logout", (req, res) => {
+  delete req.session.discord;
+  res.redirect("/?tab=discord");
+});
+
+// GET /api/discord/me - Get logged-in Discord user info
+app.get("/api/discord/me", (req, res) => {
+  if (!req.session.discord) {
+    return res.json({ loggedIn: false });
+  }
+  res.json({
+    loggedIn: true,
+    ...req.session.discord,
+  });
+});
+
+// POST /api/discord/transfer - Transfer Discord roles to TS6
+app.post("/api/discord/transfer", async (req, res) => {
+  const ip = getClientIp(req);
+
+  if (!discord.enabled) {
+    return res.status(400).json({ success: false, error: tr("err_discord_disabled") });
+  }
+
+  if (!req.session.discord) {
+    return res.status(401).json({ success: false, error: tr("err_discord_not_logged_in") });
+  }
+
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ success: false, error: tr("err_rate_limit") });
+  }
+
+  const discordUser = req.session.discord;
+
+  try {
+    // Refresh roles from Discord (in case they changed)
+    let memberData;
+    try {
+      memberData = await discord.getMemberRoles(discordUser.id);
+      // Update session
+      req.session.discord.roles = memberData.roles;
+      req.session.discord.mappedGroups = memberData.mappedGroups;
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        error: `${tr("err_discord_fetch")} ${e.message}`,
+      });
+    }
+
+    // Find TS6 client by IP
+    let ts6Clients;
+    try {
+      ts6Clients = await ts6.findClientsByIp(ip);
+    } catch (e) {
+      return res.status(503).json({ success: false, error: `${tr("err_ts6_connect")} ${e.message}` });
+    }
+
+    if (ts6Clients.length === 0) {
+      return res.status(404).json({ success: false, error: tr("err_ts6_not_found") });
+    }
+    if (ts6Clients.length > 1) {
+      return res.status(400).json({ success: false, error: tr("err_ts6_multiple", { count: ts6Clients.length, ip }) });
+    }
+
+    const ts6Client = ts6Clients[0];
+
+    if (memberData.mappedGroups.length === 0) {
+      return res.json({
+        success: true,
+        message: tr("msg_discord_no_roles"),
+        discordUsername: discordUser.username,
+        ts6Nickname: ts6Client.nickname,
+        transferred: [],
+      });
+    }
+
+    const groupsToTransfer = memberData.mappedGroups.filter(
+      (g) => !ts6Client.serverGroups.map(String).includes(String(g))
+    );
+
+    if (groupsToTransfer.length === 0) {
+      return res.json({
+        success: true,
+        message: tr("msg_synced"),
+        discordUsername: discordUser.username,
+        ts6Nickname: ts6Client.nickname,
+        transferred: [],
+        alreadyHad: memberData.mappedGroups,
+      });
+    }
+
+    const transferred = [];
+    const errors = [];
+
+    for (const groupId of groupsToTransfer) {
+      try {
+        await ts6.addServerGroup(ts6Client.dbid, groupId);
+        transferred.push(groupId);
+      } catch (e) {
+        errors.push({ groupId, error: e.message });
+        console.error(`[DISCORD-TRANSFER] Failed to add group ${groupId}:`, e.message);
+      }
+    }
+
+    setRateLimit(ip);
+
+    res.json({
+      success: true,
+      message: errors.length === 0 ? tr("msg_success") : tr("msg_partial"),
+      discordUsername: discordUser.username,
+      ts6Nickname: ts6Client.nickname,
+      transferred,
+      alreadyHad: memberData.mappedGroups.filter((g) =>
+        ts6Client.serverGroups.map(String).includes(String(g))
+      ),
+      errors,
+    });
+  } catch (e) {
+    console.error("[DISCORD-TRANSFER] Unexpected error:", e);
+    res.status(500).json({ success: false, error: `${tr("err_server")} ${e.message}` });
+  }
+});
+
+// ─────────────────────────────────────────────
 //  START SERVER
 // ─────────────────────────────────────────────
 app.listen(CONFIG.web.port, "0.0.0.0", () => {
@@ -620,6 +974,7 @@ app.listen(CONFIG.web.port, "0.0.0.0", () => {
   Language: ${LANG.toUpperCase()}
   TS3:      ${CONFIG.ts3.host}:${CONFIG.ts3.queryPort}
   TS6:      ${CONFIG.ts6.host}:${CONFIG.ts6.queryPort} (HTTP)
+  Discord:  ${discord.enabled ? "OAuth2 Enabled" : "Disabled"}
   ─────────────────────────────────
   `);
 });

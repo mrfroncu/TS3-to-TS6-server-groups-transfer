@@ -9,286 +9,94 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg-deep: #0a0c10;
-      --bg-card: #12151c;
-      --bg-card-hover: #181c26;
-      --border: #1e2330;
-      --border-active: #2a3a5c;
-      --text: #c8cdd8;
-      --text-dim: #5a6275;
-      --text-bright: #e8ecf4;
-      --accent: #3b82f6;
-      --success: #22c55e;
-      --success-glow: rgba(34, 197, 94, 0.2);
-      --error: #ef4444;
-      --error-glow: rgba(239, 68, 68, 0.2);
-      --warning: #f59e0b;
-      --ts3: #2563eb;
-      --ts6: #8b5cf6;
+      --bg-deep: #0a0c10; --bg-card: #12151c; --bg-card-hover: #181c26;
+      --border: #1e2330; --border-active: #2a3a5c;
+      --text: #c8cdd8; --text-dim: #5a6275; --text-bright: #e8ecf4;
+      --accent: #3b82f6; --success: #22c55e; --success-glow: rgba(34,197,94,0.2);
+      --error: #ef4444; --error-glow: rgba(239,68,68,0.2); --warning: #f59e0b;
+      --ts3: #2563eb; --ts6: #8b5cf6; --discord: #5865F2;
     }
-
     html { font-size: 16px; }
+    body { font-family: 'Outfit', sans-serif; background: var(--bg-deep); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 600px 400px at 20% 20%, rgba(59,130,246,0.06), transparent), radial-gradient(ellipse 500px 500px at 80% 80%, rgba(139,92,246,0.05), transparent); pointer-events: none; z-index: 0; }
+    .container { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 40px 20px 60px; }
 
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg-deep);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 600px 400px at 20% 20%, rgba(59,130,246,0.06), transparent),
-        radial-gradient(ellipse 500px 500px at 80% 80%, rgba(139,92,246,0.05), transparent);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 40px 20px 60px;
-    }
-
-    .header { text-align: center; margin-bottom: 36px; }
+    .header { text-align: center; margin-bottom: 28px; }
     .header-logo { margin-bottom: 20px; min-height: 10px; }
     .header-logo img { max-height: 80px; max-width: 280px; object-fit: contain; }
+    .header h1 { font-size: 1.8rem; font-weight: 800; color: var(--text-bright); letter-spacing: -0.03em; }
+    .header h1 .ts3c { color: var(--ts3); } .header h1 .ts6c { color: var(--ts6); }
+    .header h1 .arrow { color: var(--text-dim); font-weight: 400; margin: 0 4px; }
 
-    .header h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--text-bright);
-      letter-spacing: -0.03em;
-      line-height: 1.2;
-    }
+    .tabs { display: none; justify-content: center; gap: 4px; margin-bottom: 28px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+    .tabs.visible { display: flex; }
+    .tab-btn { flex: 1; max-width: 200px; padding: 10px 16px; font-size: 0.82rem; font-weight: 700; font-family: 'Outfit', sans-serif; color: var(--text-dim); background: transparent; border: none; border-radius: 7px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+    .tab-btn.active { color: var(--text-bright); background: rgba(255,255,255,0.07); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+    .tab-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
 
-    .header h1 span.ts3c { color: var(--ts3); }
-    .header h1 span.ts6c { color: var(--ts6); }
-    .header h1 span.arrow { color: var(--text-dim); font-weight: 400; margin: 0 4px; }
-
-    .header p {
-      color: var(--text-dim);
-      font-size: 0.9rem;
-      margin-top: 8px;
-      line-height: 1.5;
-    }
-
-    .warning-banner {
-      background: rgba(245, 158, 11, 0.08);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 28px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .warning-banner svg {
-      flex-shrink: 0;
-      width: 20px; height: 20px;
-      color: var(--warning);
-      margin-top: 1px;
-    }
-
-    .warning-banner .text {
-      font-size: 0.82rem;
-      line-height: 1.6;
-      color: #c9a44b;
-    }
-
+    .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 24px; text-align: center; line-height: 1.5; }
+    .warning-banner { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 16px 20px; margin-bottom: 28px; display: flex; gap: 12px; align-items: flex-start; }
+    .warning-banner svg { flex-shrink: 0; width: 20px; height: 20px; color: var(--warning); margin-top: 1px; }
+    .warning-banner .text { font-size: 0.82rem; line-height: 1.6; color: #c9a44b; }
     .warning-banner .text strong { color: #e0b94e; font-weight: 600; }
 
-    .ip-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 28px;
-    }
+    .ip-badge { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 28px; }
+    .ip-badge .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); font-weight: 600; }
+    .ip-badge .value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15); padding: 4px 12px; border-radius: 6px; }
 
-    .ip-badge .label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-dim);
-      font-weight: 600;
-    }
-
-    .ip-badge .value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--accent);
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.15);
-      padding: 4px 12px;
-      border-radius: 6px;
-    }
-
-    .servers {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 28px;
-    }
-
+    .servers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
     @media (max-width: 520px) { .servers { grid-template-columns: 1fr; } }
-
-    .server-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      transition: border-color 0.2s;
-    }
-
-    .server-card.ts3 { border-top: 2px solid var(--ts3); }
-    .server-card.ts6 { border-top: 2px solid var(--ts6); }
-
-    .server-card .server-name {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .server-card.ts3 .server-name { color: var(--ts3); }
-    .server-card.ts6 .server-name { color: var(--ts6); }
-
-    .server-card .status-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
+    .server-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .server-card.ts3 { border-top: 2px solid var(--ts3); } .server-card.ts6 { border-top: 2px solid var(--ts6); }
+    .server-card .server-name { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 12px; }
+    .server-card.ts3 .server-name { color: var(--ts3); } .server-card.ts6 .server-name { color: var(--ts6); }
+    .server-card .status-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
     .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .dot.green { background: var(--success); box-shadow: 0 0 6px var(--success-glow); }
     .dot.red { background: var(--error); box-shadow: 0 0 6px var(--error-glow); }
-
     .server-card .nickname { font-weight: 600; color: var(--text-bright); font-size: 0.9rem; }
     .server-card .meta { font-size: 0.78rem; color: var(--text-dim); }
-
-    .server-card .groups-label {
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-dim);
-      margin-top: 14px;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
+    .server-card .groups-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-top: 14px; margin-bottom: 6px; font-weight: 600; }
     .group-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-
-    .group-tag {
-      font-size: 0.72rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
+    .group-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); }
     .group-tag .group-name { font-weight: 600; color: var(--text-bright); }
-
-    .group-tag .group-id {
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text-dim);
-      font-size: 0.68rem;
-    }
-
+    .group-tag .group-id { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.68rem; }
     .server-card .empty { font-size: 0.8rem; color: var(--text-dim); font-style: italic; }
     .server-card .error-text { font-size: 0.8rem; color: var(--error); }
-
-    .btn-join {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
-      padding: 6px 14px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      font-family: 'Outfit', sans-serif;
-      color: var(--accent);
-      background: rgba(59,130,246,0.08);
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 6px;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-
-    .btn-join:hover {
-      background: rgba(59,130,246,0.15);
-      border-color: rgba(59,130,246,0.35);
-      color: var(--text-bright);
-    }
-
+    .btn-join { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 14px; font-size: 0.75rem; font-weight: 600; font-family: 'Outfit', sans-serif; color: var(--accent); background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; text-decoration: none; transition: all 0.2s; }
+    .btn-join:hover { background: rgba(59,130,246,0.15); color: var(--text-bright); }
     .btn-join svg { width: 13px; height: 13px; }
 
+    /* Discord card */
+    .dc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; border-top: 2px solid var(--discord); }
+    .dc-card .section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: var(--discord); margin-bottom: 14px; }
+    .dc-login-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; font-size: 0.88rem; font-weight: 700; font-family: 'Outfit', sans-serif; color: #fff; background: var(--discord); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .dc-login-btn:hover { background: #4752c4; transform: translateY(-1px); }
+    .dc-login-btn svg { width: 20px; height: 20px; }
+    .dc-user { display: flex; align-items: center; gap: 12px; }
+    .dc-user img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--discord); }
+    .dc-user .dc-name { font-weight: 700; color: var(--text-bright); font-size: 0.95rem; }
+    .dc-user .dc-sub { font-size: 0.72rem; color: var(--text-dim); }
+    .dc-logout { margin-left: auto; font-size: 0.72rem; color: var(--text-dim); background: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 5px; cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600; transition: all 0.2s; text-decoration: none; }
+    .dc-logout:hover { color: var(--error); border-color: var(--error); }
+
     .transfer-section { text-align: center; margin-bottom: 20px; }
-
-    .btn-transfer {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 36px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      font-family: 'Outfit', sans-serif;
-      color: #fff;
-      background: linear-gradient(135deg, var(--ts3), var(--ts6));
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.25s;
-      box-shadow: 0 4px 20px rgba(59,130,246,0.25);
-      letter-spacing: 0.01em;
-    }
-
+    .btn-transfer { display: inline-flex; align-items: center; gap: 10px; padding: 14px 36px; font-size: 0.95rem; font-weight: 700; font-family: 'Outfit', sans-serif; color: #fff; background: linear-gradient(135deg, var(--ts3), var(--ts6)); border: none; border-radius: 10px; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 20px rgba(59,130,246,0.25); }
     .btn-transfer:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(59,130,246,0.35); }
     .btn-transfer:active:not(:disabled) { transform: translateY(0); }
     .btn-transfer:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-transfer svg { width: 18px; height: 18px; }
-
-    .btn-refresh {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 12px;
-      padding: 8px 18px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      font-family: 'Outfit', sans-serif;
-      color: var(--text-dim);
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
+    .btn-transfer.discord-btn { background: linear-gradient(135deg, var(--discord), var(--ts6)); box-shadow: 0 4px 20px rgba(88,101,242,0.25); }
+    .btn-transfer.discord-btn:hover:not(:disabled) { box-shadow: 0 6px 28px rgba(88,101,242,0.35); }
+    .btn-refresh { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 18px; font-size: 0.78rem; font-weight: 600; font-family: 'Outfit', sans-serif; color: var(--text-dim); background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .btn-refresh:hover { color: var(--text); border-color: var(--border-active); }
     .btn-refresh svg { width: 14px; height: 14px; }
 
-    .result {
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-top: 20px;
-      font-size: 0.85rem;
-      line-height: 1.6;
-      display: none;
-    }
-
+    .result { border-radius: 10px; padding: 16px 20px; margin-top: 20px; font-size: 0.85rem; line-height: 1.6; display: none; }
     .result.show { display: block; animation: fadeIn 0.3s ease; }
     .result.success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); color: #6ee7a0; }
     .result.error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
@@ -296,303 +104,287 @@
     .result.success .result-title { color: var(--success); }
     .result.error .result-title { color: var(--error); }
 
-    .spinner {
-      display: inline-block;
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-    .skeleton {
-      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 6px;
-      height: 16px;
-      margin-bottom: 8px;
-    }
-
-    .skeleton.w60 { width: 60%; }
-    .skeleton.w40 { width: 40%; }
-
+    .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; height: 16px; margin-bottom: 8px; }
+    .skeleton.w60 { width: 60%; } .skeleton.w40 { width: 40%; }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    .footer {
-      text-align: center;
-      margin-top: 48px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-
-    .footer a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.2s;
-    }
-
+    .footer { text-align: center; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-dim); }
+    .footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
     .footer a:hover { color: var(--text-bright); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="header-logo" id="header-logo"></div>
-      <h1><span class="ts3c">TS3</span> <span class="arrow">→</span> <span class="ts6c">TS6</span> Server Roles Transfer</h1>
-      <p id="i18n-subtitle"></p>
-    </div>
+<div class="container">
+  <div class="header">
+    <div class="header-logo" id="header-logo"></div>
+    <h1><span class="ts3c">TS3</span> <span class="arrow">→</span> <span class="ts6c">TS6</span> Server Roles Transfer</h1>
+  </div>
 
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="ts3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span id="i18n-tab-ts3"></span>
+    </button>
+    <button class="tab-btn" data-tab="discord">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.12-.098.246-.198.372-.292a.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+      <span id="i18n-tab-discord"></span>
+    </button>
+  </div>
+
+  <!-- ═══ TS3 → TS6 ═══ -->
+  <div class="tab-content active" id="tab-ts3">
+    <p class="subtitle" id="i18n-subtitle"></p>
     <div class="warning-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <div class="text" id="i18n-warning"></div>
     </div>
-
     <div class="ip-badge">
       <span class="label" id="i18n-your-ip"></span>
       <span class="value" id="ip-display">...</span>
     </div>
-
     <div class="servers">
-      <div class="server-card ts3" id="card-ts3">
-        <div class="server-name">TeamSpeak 3</div>
-        <div class="skeleton w60"></div>
-        <div class="skeleton w40"></div>
-      </div>
-      <div class="server-card ts6" id="card-ts6">
-        <div class="server-name">TeamSpeak 6</div>
-        <div class="skeleton w60"></div>
-        <div class="skeleton w40"></div>
-      </div>
+      <div class="server-card ts3" id="card-ts3"><div class="server-name">TS3</div><div class="skeleton w60"></div><div class="skeleton w40"></div></div>
+      <div class="server-card ts6" id="card-ts6"><div class="server-name">TS6</div><div class="skeleton w60"></div><div class="skeleton w40"></div></div>
     </div>
-
     <div class="transfer-section">
       <button class="btn-transfer" id="btn-transfer" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
         <span id="i18n-btn-transfer"></span>
-      </button>
-      <br />
+      </button><br />
       <button class="btn-refresh" id="btn-refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115.36-6.36L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15.36 6.36L3 16"/></svg>
         <span id="i18n-btn-refresh"></span>
       </button>
     </div>
-
-    <div class="result" id="result"></div>
-
-    <div class="footer" id="i18n-footer"></div>
+    <div class="result" id="result-ts3"></div>
   </div>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
+  <!-- ═══ Discord → TS6 ═══ -->
+  <div class="tab-content" id="tab-discord">
+    <p class="subtitle" id="i18n-discord-subtitle"></p>
+    <div class="warning-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="text" id="i18n-discord-warning"></div>
+    </div>
+    <div class="ip-badge">
+      <span class="label" id="i18n-your-ip-dc"></span>
+      <span class="value" id="ip-display-dc">...</span>
+    </div>
+    <div class="servers">
+      <div class="dc-card" id="dc-card">
+        <div class="section-label">Discord</div>
+        <div id="dc-content"><div class="skeleton w60"></div></div>
+      </div>
+      <div class="server-card ts6" id="card-ts6-dc"><div class="server-name">TS6</div><div class="skeleton w60"></div><div class="skeleton w40"></div></div>
+    </div>
+    <div class="transfer-section">
+      <button class="btn-transfer discord-btn" id="btn-discord-transfer" disabled>
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.12-.098.246-.198.372-.292a.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419s.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        <span id="i18n-btn-discord-transfer"></span>
+      </button><br />
+      <button class="btn-refresh" id="btn-refresh-dc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0115.36-6.36L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 01-15.36 6.36L3 16"/></svg>
+        <span id="i18n-btn-refresh-dc"></span>
+      </button>
+    </div>
+    <div class="result" id="result-discord"></div>
+  </div>
 
-    const $ip = $("ip-display");
-    const $ts3 = $("card-ts3");
-    const $ts6 = $("card-ts6");
-    const $btn = $("btn-transfer");
-    const $refresh = $("btn-refresh");
-    const $result = $("result");
-    const $logo = $("header-logo");
+  <div class="footer" id="i18n-footer"></div>
+</div>
 
-    // Translation object — loaded from backend
-    let t = {};
-    let connectAddresses = { ts3: "", ts6: "" };
+<script>
+const $ = id => document.getElementById(id);
+let t = {}, connectAddresses = { ts3: "", ts6: "" }, discordEnabled = false, discordUser = null, lastTs6 = null;
+function tr(k) { return t[k] || k; }
+function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+const ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>';
+const DC_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.12-.098.246-.198.372-.292a.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419s.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>';
 
-    function tr(key) { return t[key] || key; }
+// ── Tabs ──
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    $("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+// Auto-switch to discord tab if ?tab=discord in URL
+if (new URLSearchParams(location.search).get("tab") === "discord") {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelector('[data-tab="discord"]').classList.add("active");
+  $("tab-discord").classList.add("active");
+}
 
-    // ── Load config + translations ──
-    async function loadConfig() {
-      try {
-        const res = await fetch("/api/config");
-        const cfg = await res.json();
+// ── Config + i18n ──
+async function loadConfig() {
+  try {
+    const cfg = await (await fetch("/api/config")).json();
+    t = cfg.t || {};
+    connectAddresses.ts3 = cfg.ts3ConnectAddress || "";
+    connectAddresses.ts6 = cfg.ts6ConnectAddress || "";
+    discordEnabled = cfg.discordEnabled || false;
+    if (cfg.language) document.documentElement.lang = cfg.language;
+    if (cfg.logoUrl) $("header-logo").innerHTML = `<img src="${esc(cfg.logoUrl)}" alt="Logo" />`;
+    if (discordEnabled) $("tabs").classList.add("visible");
 
-        // Store translations
-        t = cfg.t || {};
+    $("i18n-tab-ts3").textContent = tr("tab_ts3");
+    $("i18n-tab-discord").textContent = tr("tab_discord");
+    $("i18n-subtitle").textContent = tr("subtitle");
+    $("i18n-warning").innerHTML = `<strong>${tr("warning_title")}</strong> ${tr("warning_text")}`;
+    $("i18n-your-ip").textContent = tr("your_ip");
+    $("i18n-your-ip-dc").textContent = tr("your_ip");
+    $("i18n-btn-transfer").textContent = tr("btn_transfer");
+    $("i18n-btn-refresh").textContent = tr("btn_refresh");
+    $("i18n-btn-refresh-dc").textContent = tr("btn_refresh");
+    $("i18n-footer").innerHTML = `${tr("footer_copy")} <a href="https://github.com/mrfroncu" target="_blank" rel="noopener">${tr("footer_author")}</a>`;
+    $("i18n-discord-subtitle").textContent = tr("discord_subtitle");
+    $("i18n-discord-warning").innerHTML = `<strong>${tr("warning_title")}</strong> ${tr("discord_warning_text")}`;
+    $("i18n-btn-discord-transfer").textContent = tr("btn_discord_transfer");
+    $("ip-display").textContent = tr("loading");
+    $("ip-display-dc").textContent = tr("loading");
+  } catch (e) { console.warn("Config error:", e); }
+}
 
-        // Store connect addresses
-        connectAddresses.ts3 = cfg.ts3ConnectAddress || "";
-        connectAddresses.ts6 = cfg.ts6ConnectAddress || "";
+// ── Discord user state ──
+async function loadDiscordUser() {
+  try {
+    const data = await (await fetch("/api/discord/me")).json();
+    discordUser = data.loggedIn ? data : null;
+    renderDiscordCard();
+  } catch (e) { discordUser = null; renderDiscordCard(); }
+}
 
-        // Set language on html element
-        if (cfg.language) {
-          document.documentElement.lang = cfg.language;
-        }
+function renderDiscordCard() {
+  const el = $("dc-content");
+  if (!discordUser) {
+    el.innerHTML = `<a class="dc-login-btn" href="/auth/discord">${DC_SVG} ${tr("btn_discord_login")}</a>`;
+    $("btn-discord-transfer").disabled = true;
+    return;
+  }
+  let html = `<div class="dc-user">
+    <img src="${esc(discordUser.avatar)}" alt="" />
+    <div><div class="dc-name">${esc(discordUser.username)}</div><div class="dc-sub">${tr("discord_logged_as")}</div></div>
+    <a class="dc-logout" href="/auth/discord/logout">${tr("btn_discord_logout")}</a>
+  </div>`;
 
-        // Logo
-        if (cfg.logoUrl) {
-          $logo.innerHTML = `<img src="${esc(cfg.logoUrl)}" alt="Logo" />`;
-        }
+  if (discordUser.mappedGroups && discordUser.mappedGroups.length > 0) {
+    html += `<div class="groups-label">${tr("discord_mapped_groups")}</div><div class="group-tags">`;
+    discordUser.mappedGroups.forEach(g => { html += `<span class="group-tag"><span class="group-id">${g}</span></span>`; });
+    html += `</div>`;
+  } else {
+    html += `<div class="groups-label">${tr("discord_mapped_groups")}</div><div class="meta">${tr("discord_no_mapped")}</div>`;
+  }
+  el.innerHTML = html;
+  updateDcBtnState();
+}
 
-        // Apply static translations
-        $("i18n-subtitle").textContent = tr("subtitle");
-        $("i18n-warning").innerHTML = `<strong>${tr("warning_title")}</strong> ${tr("warning_text")}`;
-        $("i18n-your-ip").textContent = tr("your_ip");
-        $("i18n-btn-transfer").textContent = tr("btn_transfer");
-        $("i18n-btn-refresh").textContent = tr("btn_refresh");
-        $("i18n-footer").innerHTML = `${tr("footer_copy")} <a href="https://github.com/mrfroncu" target="_blank" rel="noopener">${tr("footer_author")}</a>`;
-        $ip.textContent = tr("loading");
+function updateDcBtnState() {
+  const ts6Ok = lastTs6 && !lastTs6.error && lastTs6.count === 1;
+  const dcOk = discordUser && discordUser.mappedGroups && discordUser.mappedGroups.length > 0;
+  $("btn-discord-transfer").disabled = !(ts6Ok && dcOk);
+}
 
-      } catch (e) {
-        console.warn("Config load failed:", e);
-      }
+// ── Render helpers ──
+function renderGroupTag(gid, names) {
+  const n = names[String(gid)];
+  return n ? `<span class="group-tag"><span class="group-name">${esc(n)}</span> <span class="group-id">(${gid})</span></span>` : `<span class="group-tag"><span class="group-id">${gid}</span></span>`;
+}
+
+function renderCard(el, sn, data) {
+  const label = sn === "ts3" ? tr("ts3_label") : tr("ts6_label");
+  const gn = data.groupNames || {};
+  if (data.error) { el.innerHTML = `<div class="server-name">${label}</div><div class="error-text">${tr("connection_error")} ${esc(data.error)}</div>`; return; }
+  if (data.count === 0) {
+    const addr = sn === "ts3" ? connectAddresses.ts3 : connectAddresses.ts6;
+    const jb = addr ? `<a class="btn-join" href="ts3server://${esc(addr)}" target="_blank">${ICON_EXT}${tr("join_server")}</a>` : "";
+    el.innerHTML = `<div class="server-name">${label}</div><div class="status-line"><span class="dot red"></span><span class="empty">${tr("not_logged_in")}</span></div>${jb}`; return;
+  }
+  if (data.count > 1) {
+    let h = `<div class="server-name">${label}</div><div class="status-line"><span class="dot red"></span><span class="error-text">${data.count} ${tr("accounts_detected")}</span></div>`;
+    data.clients.forEach(c => { h += `<div class="meta" style="margin-top:4px">• ${esc(c.nickname)}</div>`; });
+    el.innerHTML = h; return;
+  }
+  const c = data.clients[0], g = c.serverGroups || [];
+  let h = `<div class="server-name">${label}</div><div class="status-line"><span class="dot green"></span><span class="nickname">${esc(c.nickname)}</span></div>`;
+  if (g.length > 0) { h += `<div class="groups-label">${tr("groups_label")}</div><div class="group-tags">`; g.forEach(x => { h += renderGroupTag(x, gn); }); h += `</div>`; }
+  else { h += `<div class="groups-label">${tr("groups_label")}</div><div class="meta">${tr("no_groups")}</div>`; }
+  el.innerHTML = h;
+}
+
+function showResult(id, type, html) { const el = $(id); el.className = `result ${type} show`; el.innerHTML = html; }
+
+// ── Fetch status ──
+async function fetchStatus() {
+  $("btn-transfer").disabled = true;
+  $("result-ts3").classList.remove("show");
+  [$("card-ts3"),$("card-ts6"),$("card-ts6-dc")].forEach(el => { el.innerHTML = `<div class="server-name">${el.classList.contains("ts3") ? tr("ts3_label") : tr("ts6_label")}</div><div class="skeleton w60"></div><div class="skeleton w40"></div>`; });
+  try {
+    const data = await (await fetch("/api/status")).json();
+    $("ip-display").textContent = data.ip || tr("ip_unknown");
+    $("ip-display-dc").textContent = data.ip || tr("ip_unknown");
+    renderCard($("card-ts3"), "ts3", data.ts3);
+    renderCard($("card-ts6"), "ts6", data.ts6);
+    renderCard($("card-ts6-dc"), "ts6", data.ts6);
+    $("btn-transfer").disabled = !(!data.ts3.error && !data.ts6.error && data.ts3.count === 1 && data.ts6.count === 1);
+    lastTs6 = data.ts6;
+    updateDcBtnState();
+  } catch (e) { $("ip-display").textContent = tr("ip_error"); }
+}
+
+// ── TS3 Transfer ──
+async function doTransfer() {
+  $("btn-transfer").disabled = true;
+  const orig = $("btn-transfer").innerHTML;
+  $("btn-transfer").innerHTML = `<span class="spinner"></span> ${tr("transferring")}`;
+  $("result-ts3").classList.remove("show");
+  try {
+    const data = await (await fetch("/api/transfer", { method: "POST" })).json();
+    if (data.success) {
+      let m = `<div class="result-title">${tr("result_success")} ${esc(data.message)}</div><div>TS3: <strong>${esc(data.ts3Nickname)}</strong> → TS6: <strong>${esc(data.ts6Nickname)}</strong></div>`;
+      if (data.transferred?.length) m += `<div style="margin-top:6px">${tr("transferred_groups")} ${data.transferred.join(", ")}</div>`;
+      if (data.alreadyHad?.length) m += `<div>${tr("already_had")} ${data.alreadyHad.join(", ")}</div>`;
+      showResult("result-ts3", "success", m);
+    } else {
+      let m = `<div class="result-title">${tr("result_error")}</div><div>${esc(data.error)}</div>`;
+      if (data.details) { m += `<div style="margin-top:6px">`; data.details.forEach(d => { m += `<div>• ${esc(d.nickname)}</div>`; }); m += `</div>`; }
+      showResult("result-ts3", "error", m);
     }
+  } catch (e) { showResult("result-ts3", "error", `<div class="result-title">${tr("result_network_error")}</div><div>${esc(e.message)}</div>`); }
+  $("btn-transfer").innerHTML = orig;
+  setTimeout(fetchStatus, 1500);
+}
 
-    // ── Render group tag ──
-    function renderGroupTag(groupId, groupNames) {
-      const name = groupNames[String(groupId)];
-      if (name) {
-        return `<span class="group-tag"><span class="group-name">${esc(name)}</span> <span class="group-id">(${groupId})</span></span>`;
-      }
-      return `<span class="group-tag"><span class="group-id">${groupId}</span></span>`;
-    }
+// ── Discord Transfer ──
+async function doDiscordTransfer() {
+  $("btn-discord-transfer").disabled = true;
+  const orig = $("btn-discord-transfer").innerHTML;
+  $("btn-discord-transfer").innerHTML = `<span class="spinner"></span> ${tr("transferring")}`;
+  $("result-discord").classList.remove("show");
+  try {
+    const data = await (await fetch("/api/discord/transfer", { method: "POST" })).json();
+    if (data.success) {
+      let m = `<div class="result-title">${tr("result_success")} ${esc(data.message)}</div><div>Discord: <strong>${esc(data.discordUsername)}</strong> → TS6: <strong>${esc(data.ts6Nickname)}</strong></div>`;
+      if (data.transferred?.length) m += `<div style="margin-top:6px">${tr("transferred_groups")} ${data.transferred.join(", ")}</div>`;
+      if (data.alreadyHad?.length) m += `<div>${tr("already_had")} ${data.alreadyHad.join(", ")}</div>`;
+      showResult("result-discord", "success", m);
+    } else { showResult("result-discord", "error", `<div class="result-title">${tr("result_error")}</div><div>${esc(data.error)}</div>`); }
+  } catch (e) { showResult("result-discord", "error", `<div class="result-title">${tr("result_network_error")}</div><div>${esc(e.message)}</div>`); }
+  $("btn-discord-transfer").innerHTML = orig;
+  setTimeout(fetchStatus, 1500);
+}
 
-    // ── Render server card ──
-    function renderCard(el, serverName, data) {
-      const label = serverName === "ts3" ? tr("ts3_label") : tr("ts6_label");
-      const groupNames = data.groupNames || {};
+$("btn-transfer").addEventListener("click", doTransfer);
+$("btn-refresh").addEventListener("click", fetchStatus);
+$("btn-discord-transfer").addEventListener("click", doDiscordTransfer);
+$("btn-refresh-dc").addEventListener("click", () => { fetchStatus(); loadDiscordUser(); });
 
-      if (data.error) {
-        el.innerHTML = `
-          <div class="server-name">${label}</div>
-          <div class="error-text">${tr("connection_error")} ${esc(data.error)}</div>`;
-        return;
-      }
-
-      if (data.count === 0) {
-        const connectAddr = serverName === "ts3" ? connectAddresses.ts3 : connectAddresses.ts6;
-        const connectUrl = serverName === "ts3"
-          ? (connectAddr ? `ts3server://${connectAddr}` : "")
-          : (connectAddr ? `ts3server://${connectAddr}` : "");
-        const joinBtn = connectAddr
-          ? `<a class="btn-join" href="${esc(connectUrl)}" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>${tr("join_server")}</a>`
-          : "";
-        el.innerHTML = `
-          <div class="server-name">${label}</div>
-          <div class="status-line"><span class="dot red"></span><span class="empty">${tr("not_logged_in")}</span></div>${joinBtn}`;
-        return;
-      }
-
-      if (data.count > 1) {
-        let html = `<div class="server-name">${label}</div>`;
-        html += `<div class="status-line"><span class="dot red"></span><span class="error-text">${data.count} ${tr("accounts_detected")}</span></div>`;
-        data.clients.forEach(c => {
-          html += `<div class="meta" style="margin-top:4px">• ${esc(c.nickname)}</div>`;
-        });
-        el.innerHTML = html;
-        return;
-      }
-
-      const c = data.clients[0];
-      const groups = c.serverGroups || [];
-      let html = `
-        <div class="server-name">${label}</div>
-        <div class="status-line"><span class="dot green"></span><span class="nickname">${esc(c.nickname)}</span></div>`;
-
-      if (groups.length > 0) {
-        html += `<div class="groups-label">${tr("groups_label")}</div><div class="group-tags">`;
-        groups.forEach(g => { html += renderGroupTag(g, groupNames); });
-        html += `</div>`;
-      } else {
-        html += `<div class="groups-label">${tr("groups_label")}</div><div class="meta">${tr("no_groups")}</div>`;
-      }
-
-      el.innerHTML = html;
-    }
-
-    // ── Fetch status ──
-    async function fetchStatus() {
-      $btn.disabled = true;
-      $result.classList.remove("show");
-
-      const ts3Label = tr("ts3_label") || "TeamSpeak 3";
-      const ts6Label = tr("ts6_label") || "TeamSpeak 6";
-
-      [$ts3, $ts6].forEach((el, i) => {
-        const label = i === 0 ? ts3Label : ts6Label;
-        el.innerHTML = `<div class="server-name">${label}</div><div class="skeleton w60"></div><div class="skeleton w40"></div>`;
-      });
-
-      try {
-        const res = await fetch("/api/status");
-        const data = await res.json();
-
-        $ip.textContent = data.ip || tr("ip_unknown");
-        renderCard($ts3, "ts3", data.ts3);
-        renderCard($ts6, "ts6", data.ts6);
-
-        const canTransfer =
-          !data.ts3.error && !data.ts6.error &&
-          data.ts3.count === 1 && data.ts6.count === 1;
-        $btn.disabled = !canTransfer;
-      } catch (e) {
-        $ip.textContent = tr("ip_error");
-        console.error(e);
-      }
-    }
-
-    // ── Transfer ──
-    async function doTransfer() {
-      $btn.disabled = true;
-      const origHTML = $btn.innerHTML;
-      $btn.innerHTML = `<span class="spinner"></span> ${tr("transferring")}`;
-      $result.classList.remove("show");
-
-      try {
-        const res = await fetch("/api/transfer", { method: "POST" });
-        const data = await res.json();
-
-        if (data.success) {
-          let msg = `<div class="result-title">${tr("result_success")} ${esc(data.message)}</div>`;
-          msg += `<div>TS3: <strong>${esc(data.ts3Nickname)}</strong> → TS6: <strong>${esc(data.ts6Nickname)}</strong></div>`;
-          if (data.transferred && data.transferred.length > 0) {
-            msg += `<div style="margin-top:6px">${tr("transferred_groups")} ${data.transferred.join(", ")}</div>`;
-          }
-          if (data.alreadyHad && data.alreadyHad.length > 0) {
-            msg += `<div>${tr("already_had")} ${data.alreadyHad.join(", ")}</div>`;
-          }
-          showResult("success", msg);
-        } else {
-          let msg = `<div class="result-title">${tr("result_error")}</div><div>${esc(data.error)}</div>`;
-          if (data.details) {
-            msg += `<div style="margin-top:6px">`;
-            data.details.forEach(d => {
-              msg += `<div>• ${esc(d.nickname)} (${tr("groups_colon")} ${d.groups.join(", ")})</div>`;
-            });
-            msg += `</div>`;
-          }
-          showResult("error", msg);
-        }
-      } catch (e) {
-        showResult("error", `<div class="result-title">${tr("result_network_error")}</div><div>${esc(e.message)}</div>`);
-      }
-
-      $btn.innerHTML = origHTML;
-      setTimeout(fetchStatus, 1500);
-    }
-
-    function showResult(type, html) {
-      $result.className = `result ${type} show`;
-      $result.innerHTML = html;
-    }
-
-    function esc(s) {
-      const d = document.createElement("div");
-      d.textContent = s || "";
-      return d.innerHTML;
-    }
-
-    // ── Events ──
-    $btn.addEventListener("click", doTransfer);
-    $refresh.addEventListener("click", fetchStatus);
-
-    // ── Init ──
-    loadConfig().then(fetchStatus);
-  </script>
+loadConfig().then(() => { fetchStatus(); loadDiscordUser(); });
+</script>
 </body>
 </html>
