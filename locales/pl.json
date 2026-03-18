@@ -39,7 +39,7 @@
   "btn_discord_logout": "Wyloguj",
   "btn_discord_transfer": "Przenieś rangi z Discorda",
   "discord_logged_as": "Zalogowany jako",
-  "discord_mapped_groups": "Zmapowane grupy TS",
+  "discord_mapped_groups": "Zmapowane role TS6 do przyznania",
   "discord_no_mapped": "Brak zmapowanych grup",
 
   "err_rate_limit": "Zbyt częste żądania. Poczekaj 30 sekund.",

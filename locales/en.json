@@ -39,7 +39,7 @@
   "btn_discord_logout": "Log out",
   "btn_discord_transfer": "Transfer roles from Discord",
   "discord_logged_as": "Logged in as",
-  "discord_mapped_groups": "Mapped TS groups",
+  "discord_mapped_groups": "Mapped TS6 roles to assign",
   "discord_no_mapped": "No mapped groups",
 
   "err_rate_limit": "Too many requests. Please wait 30 seconds.",

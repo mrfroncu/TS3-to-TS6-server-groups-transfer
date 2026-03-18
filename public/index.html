@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TS3 → TS6 Server Roles Transfer</title>
+  <title>TS6 Server Groups Transfer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
@@ -120,7 +120,7 @@
 <div class="container">
   <div class="header">
     <div class="header-logo" id="header-logo"></div>
-    <h1><span class="ts3c">TS3</span> <span class="arrow">→</span> <span class="ts6c">TS6</span> Server Roles Transfer</h1>
+    <h1><span class="ts3c">TS</span><span class="ts6c">6</span> Server Groups Transfer</h1>
   </div>
 
   <div class="tabs" id="tabs">
@@ -198,7 +198,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let t = {}, connectAddresses = { ts3: "", ts6: "" }, discordEnabled = false, discordUser = null, lastTs6 = null;
+let t = {}, connectAddresses = { ts3: "", ts6: "" }, discordEnabled = false, discordUser = null, lastTs6 = null, ts6GroupNames = {};
 function tr(k) { return t[k] || k; }
 function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
 const ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>';
@@ -275,7 +275,14 @@ function renderDiscordCard() {
 
   if (discordUser.mappedGroups && discordUser.mappedGroups.length > 0) {
     html += `<div class="groups-label">${tr("discord_mapped_groups")}</div><div class="group-tags">`;
-    discordUser.mappedGroups.forEach(g => { html += `<span class="group-tag"><span class="group-id">${g}</span></span>`; });
+    discordUser.mappedGroups.forEach(g => {
+      const name = ts6GroupNames[String(g)];
+      if (name) {
+        html += `<span class="group-tag"><span class="group-name">${esc(name)}</span> <span class="group-id">(${g})</span></span>`;
+      } else {
+        html += `<span class="group-tag"><span class="group-id">${g}</span></span>`;
+      }
+    });
     html += `</div>`;
   } else {
     html += `<div class="groups-label">${tr("discord_mapped_groups")}</div><div class="meta">${tr("discord_no_mapped")}</div>`;
@@ -333,7 +340,9 @@ async function fetchStatus() {
     renderCard($("card-ts6-dc"), "ts6", data.ts6);
     $("btn-transfer").disabled = !(!data.ts3.error && !data.ts6.error && data.ts3.count === 1 && data.ts6.count === 1);
     lastTs6 = data.ts6;
+    ts6GroupNames = data.ts6.groupNames || {};
     updateDcBtnState();
+    if (discordUser) renderDiscordCard();
   } catch (e) { $("ip-display").textContent = tr("ip_error"); }
 }
 
